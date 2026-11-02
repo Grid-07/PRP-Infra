@@ -2,13 +2,14 @@
   "name": "PRP Infra Project",
   "short_name": "PRP Infra",
   "description": "Homes across Ranchi — eight addresses from PRP Infra Project.",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#001e3c",
   "theme_color": "#001e3c",
   "icons": [
-    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "./favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

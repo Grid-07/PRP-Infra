@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../pages/HomePage.vue'
 import ProjectPage from '../pages/ProjectPage.vue'
 import { projects } from '../data/projects'
+import { hasPending } from '../utils/handoff'
 
 /**
  * One page for the group, one page per project.
@@ -31,6 +32,17 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior(to, from, saved) {
+    // Coming back out of a project: ProjectGrid replays the reverse hand-off
+    // and puts the page back where the visitor left it, so the router must keep
+    // its hands off — a jump to the top here would shrink the cover onto a card
+    // that is no longer where it was.
+    if (to.name === 'home' && from.meta.project) {
+      // Unless there is nothing to replay — a deep link straight into a project
+      // leaves no record, and the group page would otherwise open at whatever
+      // offset the project page happened to be at.
+      return hasPending() ? false : { top: 0, behavior: 'instant' }
+    }
+
     if (to.hash) return { el: to.hash, behavior: 'smooth' }
     if (saved) return saved
 

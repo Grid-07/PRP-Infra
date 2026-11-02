@@ -24,7 +24,11 @@
       property="og:description"
       content="Eight addresses. One standard. PRP Infra Project — residential, mixed-use and township schemes across Ranchi."
     />
-    <meta property="og:image" content="/images/og-image.jpg" />
+    <!-- Absolute, not base-relative: link-preview scrapers do not resolve
+         relative og:image URLs against the page, and Vite leaves meta content
+         untouched during the build. Matches the deployed Pages origin. -->
+    <meta property="og:image" content="https://grid-07.github.io/PRP-Infra/images/og-image.jpg" />
+    <meta property="og:url" content="https://grid-07.github.io/PRP-Infra/" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />

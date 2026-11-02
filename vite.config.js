@@ -1,11 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// Served from the domain root for now. `base` is left configurable so the same
-// build works from a sub-path later without touching a single asset path --
-// every path in the app goes through src/utils/asset.js.
+// GitHub Pages serves a project repo from /<repo>/, not from the domain root,
+// so every emitted asset URL has to carry that prefix. With `base: '/'` the
+// shell asked for /assets/index-*.js, which 404s at the domain root and leaves
+// the deployed site blank. Every path in the app goes through src/utils/asset.js,
+// so this one value is the only place the prefix appears.
 export default defineConfig({
-  base: '/',
+  base: '/PRP-Infra/',
   plugins: [vue()],
   build: {
     outDir: 'docs',

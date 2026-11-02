@@ -57,16 +57,36 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from './AppIcon.vue'
 import { projectImage } from '../utils/asset'
-import { openHandoff } from '../utils/handoff'
+import {
+  beginReverse,
+  endReverse,
+  openHandoff,
+  remember,
+  shrinkTo,
+  takePending,
+} from '../utils/handoff'
 
 const props = defineProps({
   projects: { type: Array, required: true },
 })
 
 const router = useRouter()
+
+const cardMedia = (slug) => {
+  const i = props.projects.findIndex((p) => p.slug === slug)
+  if (i < 0) return null
+  const card = document.querySelectorAll('.card')[i]
+  return card ? card.querySelector('.card__media') : null
+}
+
+const rectOf = (el) => {
+  const r = el.getBoundingClientRect()
+  return { top: r.top, left: r.left, right: r.right, bottom: r.bottom }
+}
 
 /**
  * The card's own image becomes the cover, grown from the card's rectangle.
@@ -75,16 +95,108 @@ const router = useRouter()
  */
 const open = (project, event) => {
   const media = event.currentTarget.querySelector('.card__media')
-  const rect = media.getBoundingClientRect()
+  const rect = rectOf(media)
+
+  // Remember where we were, so Back can shrink the cover onto this same card.
+  remember(project.slug)
 
   openHandoff({
     src: projectImage(project.slug, 'hero'),
     name: project.name,
-    rect: { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom },
+    rect,
   })
 
   window.setTimeout(() => router.push(`/${project.slug}`), 620)
 }
+
+/* ---------------------------------------------------------------- reverse --- */
+
+let reversing = false
+
+const waitForScrollSettle = (cb) => {
+  let last = window.scrollY
+  let stable = 0
+  let frames = 0
+  const tick = () => {
+    frames += 1
+    if (window.scrollY === last) stable += 1
+    else {
+      stable = 0
+      last = window.scrollY
+    }
+    // A few still frames, or give up after ~1s and use whatever we have.
+    if ((stable > 2 && frames > 3) || frames > 60) cb()
+    else requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+
+/**
+ * Back from a project: cover the page at full bleed, put the group page back
+ * where the visitor left it, then shrink the cover onto the card it came from.
+ * The card has to be found after the scroll has settled, or the shrink lands on
+ * whatever happened to be at that viewport position mid-restore.
+ */
+const startReverse = (pending) => {
+  const project = props.projects.find((p) => p.slug === pending.slug)
+  if (!project || reversing) return
+  reversing = true
+
+  // The restore must be instant. `html { scroll-behavior: smooth }` would
+  // otherwise glide the page back while the cover is already shrinking.
+  document.documentElement.style.scrollBehavior = 'auto'
+  if (typeof pending.y === 'number') {
+    window.scrollTo({ top: pending.y, behavior: 'instant' })
+  }
+
+  beginReverse({
+    src: projectImage(project.slug, 'hero'),
+    name: project.name,
+  })
+
+  waitForScrollSettle(() => {
+    const media = cardMedia(pending.slug)
+    const rect = media ? rectOf(media) : null
+    const onScreen =
+      rect && rect.top < window.innerHeight - 40 && rect.bottom > 40
+
+    // Came back to a different part of the page: there is no card to shrink
+    // onto, so fade the cover rather than flying it off to a corner.
+    if (!onScreen) {
+      endReverse(340)
+      reversing = false
+      return
+    }
+
+    shrinkTo(rect)
+    // 860, not 780: the shrink is a 0.78s transition that only starts a frame
+    // after the phase flips. Fading any earlier leaves the cover a few pixels
+    // off the card while it disappears.
+    endReverse(860)
+    reversing = false
+  })
+}
+
+const onPageShow = (e) => {
+  // Restored from the back/forward cache: the old cover is still mounted, so
+  // tear it down before replaying the move.
+  if (!e.persisted) return
+  reversing = false
+  const pending = takePending()
+  if (pending) requestAnimationFrame(() => startReverse(pending))
+  else document.documentElement.style.scrollBehavior = ''
+}
+
+onMounted(() => {
+  window.addEventListener('pageshow', onPageShow)
+  const pending = takePending()
+  if (pending) requestAnimationFrame(() => startReverse(pending))
+  else document.documentElement.style.scrollBehavior = ''
+})
+
+onUnmounted(() => {
+  window.removeEventListener('pageshow', onPageShow)
+})
 </script>
 
 <style scoped>
